@@ -103,7 +103,7 @@ class MQTTSmartBlind:
 
 		# Initialisatiohow MQTT topics are mapped to blind control commands.
 		
-		self.__initialiseRouting() # Specifies which topic paths route to which callback.
+		self._initialiseRouting() # Specifies which topic paths route to which callback.
 				
 		# Create a connection to the stepper motor and register to observe
 		# any motion of the motor as it occurs.
@@ -114,19 +114,19 @@ class MQTTSmartBlind:
 			loggingLevel = logging.NOTSET
 		)
 		
-		self._blindController.observe(self.__onMotionUpdate) # We want to observe the motion.
+		self._blindController.observe(self._onMotionUpdate) # We want to observe the motion.
 
 		# Connect to the MQTT broker and initiate the event loop for 
 		# talking to it.
 
-		self._client = self.__connectToBroker()
+		self._client = self._connectToBroker()
 		self._client.loop_start()
 
-		self.__awaitConnection()     # Wait for the MQTT broker.
+		self._awaitConnection()     # Wait for the MQTT broker.
 
-		self.__publishStartMotionPosition(self._client, 0, 0) # Initial publish.
-		self.__publishInMotionPosition(self._client, 0, 0) # Initial publish.
-		self.__publishEndMotionPosition(self._client, 0, 0) # Initial publish.
+		self._publishStartMotionPosition(self._client, 0, 0) # Initial publish.
+		self._publishInMotionPosition(self._client, 0, 0) # Initial publish.
+		self._publishEndMotionPosition(self._client, 0, 0) # Initial publish.
 			
 		# username = 'emqx'
 		# password = 'public'
@@ -203,34 +203,34 @@ class MQTTSmartBlind:
 
 	####################################################################################
 	#
-	# __initialiseRouting(self)
+	# _initialiseRouting(self)
 	#
 	####################################################################################
 
-	def __initialiseRouting(self):
+	def _initialiseRouting(self):
 
-		self.__registerCommand("calibrate/set-step-size", self.__executeSetStepSize)
-		self.__registerCommand("calibrate/wind", self.__executeWind)
-		self.__registerCommand("calibrate/counter-wind", self.__executeCounterWind)
-		self.__registerCommand("calibrate/set-opened", self.__executeSetOpened)
-		self.__registerCommand("calibrate/set-closed", self.__executeSetClosed)
-		self.__registerCommand("calibrate/set-speed", self.__executeSetSpeed)
-		self.__registerCommand("calibrate/set-polarity", self.__executeSetPolarity)
+		self._registerCommand("calibrate/set-step-size", self._executeSetStepSize)
+		self._registerCommand("calibrate/wind", self._executeWind)
+		self._registerCommand("calibrate/counter-wind", self._executeCounterWind)
+		self._registerCommand("calibrate/set-opened", self._executeSetOpened)
+		self._registerCommand("calibrate/set-closed", self._executeSetClosed)
+		self._registerCommand("calibrate/set-speed", self._executeSetSpeed)
+		self._registerCommand("calibrate/set-polarity", self._executeSetPolarity)
 		
-		self.__registerCommand("control/open", self.__executeOpen)
-		self.__registerCommand("control/close", self.__executeClose)
-		self.__registerCommand("control/go-to", self.__executeGoTo)
-		self.__registerCommand("control/stop", self.__executeStop)
+		self._registerCommand("control/open", self._executeOpen)
+		self._registerCommand("control/close", self._executeClose)
+		self._registerCommand("control/go-to", self._executeGoTo)
+		self._registerCommand("control/stop", self._executeStop)
 		
-		self.__registerCommand("position/set", self.__executeGoTo) # Synonym for control/go-to.
+		self._registerCommand("position/set", self._executeGoTo) # Synonym for control/go-to.
 
 	####################################################################################
 	#
-	# __registerCommand(self, command, params, method)
+	# _registerCommand(self, command, params, method)
 	#
 	####################################################################################
 
-	def __registerCommand(self, command, method):
+	def _registerCommand(self, command, method):
 
 		if (command in self._routingTable):
 			raise Exception(f"Command {command} is already registered.")
@@ -239,11 +239,11 @@ class MQTTSmartBlind:
 		
 	####################################################################################
 	#
-	# __connectToBroker(self)
+	# _connectToBroker(self)
 	#
 	####################################################################################
 
-	def __connectToBroker(self):
+	def _connectToBroker(self):
 
 		# client = mqtt_client.Client(client_id,transport=’websockets’)
 		# client = mqtt_client.Client(client_id=””, clean_session=True, userdata=None, protocol = MQTTv311, transport=”tcp”)
@@ -252,8 +252,8 @@ class MQTTSmartBlind:
 	
 		# client.username_pw_set(username, password)    # TODO
 	
-		client.on_connect = self.__onConnect
-		client.on_disconnect = self.__onDisconnect
+		client.on_connect = self._onConnect
+		client.on_disconnect = self._onDisconnect
 		
 		client.connect(self._broker, self._port)
 		
@@ -261,11 +261,11 @@ class MQTTSmartBlind:
 
 	####################################################################################
 	#
-	# __awaitConnection(self)
+	# _awaitConnection(self)
 	#
 	####################################################################################
 
-	def __awaitConnection(self):
+	def _awaitConnection(self):
 
 		while not self._isConnected:
 			self._logger.debug("Awaiting connection...")
@@ -273,50 +273,50 @@ class MQTTSmartBlind:
 			
 	####################################################################################
 	#
-	# __onConnect(client, userdata, flags, rc)
+	# _onConnect(client, userdata, flags, rc)
 	#
 	####################################################################################
 
-	def __onConnect(self, client, userdata, flags, rc):
+	def _onConnect(self, client, userdata, flags, rc):
 
 		if rc == 0:
 			self._logger.info("Connected to MQTT Broker!")
 			self._isConnected = True
 			
 			# (Re)subscribe whenever a connection is established.
-			self.__subscribeToTopics(client)
+			self._subscribeToTopics(client)
 
 		else:
 			self._logger.error("Failed to connect, return code %d\n", rc)
 
 	####################################################################################
 	#
-	# __onDisconnect(self, client, userdata, rc)
+	# _onDisconnect(self, client, userdata, rc)
 	#
 	####################################################################################
 
-	def __onDisconnect(self, client, userdata, rc):
+	def _onDisconnect(self, client, userdata, rc):
 
-		self._isConnected = false
+		self._isConnected = False
 		self._logger.warning("disconnecting: reason is " +str(rc))
 
 	####################################################################################
 	#
-	# __onPublish(self, obj, mid)
+	# _onPublish(self, obj, mid)
 	#
 	####################################################################################
 
-	def __onPublish(self, obj, topic):
+	def _onPublish(self, obj, topic):
 	
 		self._logger.debug("Published to {topic}.")
 
 	####################################################################################
 	#
-	# __onSubscribe(self, obj, mid, granted_qos)
+	# _onSubscribe(self, obj, mid, granted_qos)
 	#
 	####################################################################################
 
-	def __onSubscribe(self, obj, topic, grantedQoS):
+	def _onSubscribe(self, obj, topic, grantedQoS):
 	
 		# Don't call this. Documentation says 4 args, but 5 seem expected.
 		# Also, no idea what each argument represents. Empirical tinkering
@@ -326,22 +326,22 @@ class MQTTSmartBlind:
 
 	####################################################################################
 	#
-	# __onLog(self, obj, level, string)
+	# _onLog(self, obj, level, string)
 	#
 	####################################################################################
 
-	def __onLog(self, obj, level, string):
+	def _onLog(self, obj, level, string):
 	
 		# No idea what this callback represents. Avoid using (for now at least).
 		pass
 		
 	####################################################################################
 	#
-	# __onMessage(self, client, userdata, message)
+	# _onMessage(self, client, userdata, message)
 	#
 	####################################################################################
 
-	def __onMessage(self, client, userdata, message):
+	def _onMessage(self, client, userdata, message):
 
 		# This is a callback invoked from the MQTT client upon a message arrival.
 		# As its not our own thread, don't let any exceptions propagate (as we can't be
@@ -349,7 +349,7 @@ class MQTTSmartBlind:
 		# a context-specific message is not of its concern).
 		
 		try:
-			self.__processMessage(message);	
+			self._processMessage(message);	
 
 		except Exception as ex: # Catch all errors as its not our thread!
 			self._logger.error(f"Error processing message {message}: {ex}.")
@@ -359,11 +359,11 @@ class MQTTSmartBlind:
 			
 	####################################################################################
 	#
-	# __subscribeToTopics(self, client)
+	# _subscribeToTopics(self, client)
 	#
 	####################################################################################
 
-	def __subscribeToTopics(self, client):
+	def _subscribeToTopics(self, client):
 
 		self._logger.debug(f"Subscribing to topics based at {self._blindBase}")
 	
@@ -371,17 +371,17 @@ class MQTTSmartBlind:
 		client.subscribe(self._blindCommandTopic)   # Incoming normal-use motion commands.
 		client.subscribe(self._blindSetStateTopic)  # Incoming property/attribute oriented motion 
 		
-		client.on_message = self.__onMessage
+		client.on_message = self._onMessage
 	
 		# Options? QoS?
 	
 	####################################################################################
 	#
-	# __publish(self, client, topic, payload)
+	# _publish(self, client, topic, payload)
 	#
 	####################################################################################
 
-	def __publish(self, client, topic, payload, QoS, retain):
+	def _publish(self, client, topic, payload, QoS, retain):
 		
 		result = client.publish(topic, payload, QoS, retain)
 		status = result[0] # result: [0, 1]
@@ -393,11 +393,11 @@ class MQTTSmartBlind:
 
 	####################################################################################
 	#
-	# __onMotionUpdate(self, targetPosition, actualPosition, motionEvent)
+	# _onMotionUpdate(self, targetPosition, actualPosition, motionEvent)
 	#
 	####################################################################################
 
-	def __onMotionUpdate(self, targetPercentage, actualPercentage, motionEvent):
+	def _onMotionUpdate(self, targetPercentage, actualPercentage, motionEvent):
 		
 		# This is a callback invoked from the motor client upon a motion update.
 		# As its not our own thread, don't let any exceptions propagate (as we can't be
@@ -405,7 +405,7 @@ class MQTTSmartBlind:
 		# a context-specific message is not of its concern).
 		
 		try:
-			self.__processMotionUpdate(targetPercentage, actualPercentage, motionEvent);	
+			self._processMotionUpdate(targetPercentage, actualPercentage, motionEvent);	
 
 		except Exception as ex: # Catch all errors as its not our thread!
 			self._logger.error(f"Error processing blind motion update: {ex}.")
@@ -415,11 +415,11 @@ class MQTTSmartBlind:
 			
 	####################################################################################
 	#
-	# __processMotionUpdate(self, targetPercentage, actualPercentage, motionEvent)
+	# _processMotionUpdate(self, targetPercentage, actualPercentage, motionEvent)
 	#
 	####################################################################################
 
-	def __processMotionUpdate(self, targetPercentage, actualPercentage, motionEvent):
+	def _processMotionUpdate(self, targetPercentage, actualPercentage, motionEvent):
 		
 		# This is a callback invoked from the async blind controller when motion occurs.
 		
@@ -431,74 +431,74 @@ class MQTTSmartBlind:
 		# for each are defined.
 		
 		if (motionEvent == SmartBlindController.MotionEvent.STARTING):
-			self.__publishStartMotionPosition(self._client, targetPercentage, actualPercentage)
-			self.__publishInMotionPosition(self._client, targetPercentage, actualPercentage)
+			self._publishStartMotionPosition(self._client, targetPercentage, actualPercentage)
+			self._publishInMotionPosition(self._client, targetPercentage, actualPercentage)
 		
 		elif (motionEvent == SmartBlindController.MotionEvent.MOVING):
-			self.__publishInMotionPosition(self._client, targetPercentage, actualPercentage)
+			self._publishInMotionPosition(self._client, targetPercentage, actualPercentage)
 
 		elif (motionEvent == SmartBlindController.MotionEvent.STOPPED):
-			self.__publishInMotionPosition(self._client, targetPercentage, actualPercentage)
-			self.__publishEndMotionPosition(self._client, targetPercentage, actualPercentage)
+			self._publishInMotionPosition(self._client, targetPercentage, actualPercentage)
+			self._publishEndMotionPosition(self._client, targetPercentage, actualPercentage)
 		
 		else:
 			self._logger.debug(f"Processing motion update, unexpected motion event {motionEvent}.")
 			
 	####################################################################################
 	#
-	# __publishStartMotionPosition(self, client, targetPercentage, actualPercentage)
+	# _publishStartMotionPosition(self, client, targetPercentage, actualPercentage)
 	#
 	####################################################################################
 
-	def __publishStartMotionPosition(self, client, targetPercentage, actualPercentage):
+	def _publishStartMotionPosition(self, client, targetPercentage, actualPercentage):
 				
-		self.__publish(
+		self._publish(
 			client, 
 			self._blindPubStartMotionTopic, 
-			self.__makePositionPayload(targetPercentage, actualPercentage),
+			self._makePositionPayload(targetPercentage, actualPercentage),
 			QoS = 0,  # Its not important that every bit of motion gets through.
 			retain = False
 		)
 
 	####################################################################################
 	#
-	# __publishInMotionPosition(self, client, targetPercentage, actualPercentage)
+	# _publishInMotionPosition(self, client, targetPercentage, actualPercentage)
 	#
 	####################################################################################
 
-	def __publishInMotionPosition(self, client, targetPercentage, actualPercentage):
+	def _publishInMotionPosition(self, client, targetPercentage, actualPercentage):
 				
-		self.__publish(
+		self._publish(
 			client, 
 			self._blindPubInMotionTopic, 
-			self.__makePositionPayload(targetPercentage, actualPercentage),
+			self._makePositionPayload(targetPercentage, actualPercentage),
 			QoS = 0,  # Its not important that every bit of motion gets through.
 			retain = False
 		)
 
 	####################################################################################
 	#
-	# __publishEndMotionPosition(self, client, targetPercentage, actualPercentage)
+	# _publishEndMotionPosition(self, client, targetPercentage, actualPercentage)
 	#
 	####################################################################################
 
-	def __publishEndMotionPosition(self, client, targetPercentage, actualPercentage):
+	def _publishEndMotionPosition(self, client, targetPercentage, actualPercentage):
 				
-		self.__publish(
+		self._publish(
 			client, 
 			self._blindPubEndMotionTopic, 
-			self.__makePositionPayload(targetPercentage, actualPercentage),
+			self._makePositionPayload(targetPercentage, actualPercentage),
 			QoS = 1,  # We want the end point to get through. Dups are fine.
 			retain = False
 		)
 
 	####################################################################################
 	#
-	# __makePositionPayload(self, targetPercentage, actualPercentage)
+	# _makePositionPayload(self, targetPercentage, actualPercentage)
 	#
 	####################################################################################
 
-	def __makePositionPayload(self, targetPercentage, actualPercentage):
+	def _makePositionPayload(self, targetPercentage, actualPercentage):
 	
 		return json.dumps({ 
 			"target" : round(targetPercentage), # Whole percentages only.
@@ -507,27 +507,27 @@ class MQTTSmartBlind:
 	
 	####################################################################################
 	#
-	# __processMessage(self, message)
+	# _processMessage(self, message)
 	#
 	####################################################################################
 
-	def __processMessage(self, message):
+	def _processMessage(self, message):
 
 		payload = message.payload.decode() # its an encoded string, so we need to decode it.
 		self._logger.debug(f"Received topic {message.topic} with {payload}")
 
-		command = self.__parseTopicForCommand(message.topic)		
+		command = self._parseTopicForCommand(message.topic)		
 		self._logger.debug(f"Parsed command '{command}'")
 		
-		self.__executeCommand(command, payload)
+		self._executeCommand(command, payload)
 
 	####################################################################################
 	#
-	# __parseTopicForCommand(self, topic)
+	# _parseTopicForCommand(self, topic)
 	#
 	####################################################################################
 
-	def __parseTopicForCommand(self, topic):
+	def _parseTopicForCommand(self, topic):
 	
 		index = self._blindBaseLen
 		command = topic[index:]
@@ -536,11 +536,11 @@ class MQTTSmartBlind:
 	
 	####################################################################################
 	#
-	# __executeCommand(self, command, payload)
+	# _executeCommand(self, command, payload)
 	#
 	####################################################################################
 
-	def __executeCommand(self, command, payload):
+	def _executeCommand(self, command, payload):
 
 		if (not (command in self._routingTable)):
 			raise Exception(f"Unexpected command {command} (with {payload}).")
@@ -550,144 +550,144 @@ class MQTTSmartBlind:
 
 	####################################################################################
 	#
-	# __executeWind(self, payload)
+	# _executeWind(self, payload)
 	#
 	####################################################################################
 
-	def __executeWind(self, payload):	
+	def _executeWind(self, payload):	
 			
-		params = self.__parseJson(payload)
-		steps = self.__getParam(params, 'steps')
+		params = self._parseJson(payload)
+		steps = self._getParam(params, 'steps')
 		
 		self._blindController.wind(steps)
 
 	####################################################################################
 	#
-	# __executeCounterWind(self, payload)
+	# _executeCounterWind(self, payload)
 	#
 	####################################################################################
 
-	def __executeCounterWind(self, payload):	
+	def _executeCounterWind(self, payload):	
 	
 		params = json.loads(payload)
-		steps = self.__getParam(params, 'steps')
+		steps = self._getParam(params, 'steps')
 		
 		self._blindController.counterWind(steps)
 
 	####################################################################################
 	#
-	# __executeSetOpened(self, payload)
+	# _executeSetOpened(self, payload)
 	#
 	####################################################################################
 
-	def __executeSetOpened(self, payload):
+	def _executeSetOpened(self, payload):
 
 		self._blindController.setOpenedPoint()
 		
 	####################################################################################
 	#
-	# __executeSetClosed(self, payload)
+	# _executeSetClosed(self, payload)
 	#
 	####################################################################################
 
-	def __executeSetClosed(self, payload):
+	def _executeSetClosed(self, payload):
 
 		self._blindController.setClosedPoint()
 
 	####################################################################################
 	#
-	# __executeOpen(self, payload)
+	# _executeOpen(self, payload)
 	#
 	####################################################################################
 
-	def __executeOpen(self, payload):
+	def _executeOpen(self, payload):
 
 		self._blindController.open()
 
 	####################################################################################
 	#
-	# __executeClose(self, payload)
+	# _executeClose(self, payload)
 	#
 	####################################################################################
 
-	def __executeClose(self, payload):
+	def _executeClose(self, payload):
 
 		self._blindController.open()
 
 	####################################################################################
 	#
-	# __executePosition(self, payload)
+	# _executePosition(self, payload)
 	#
 	####################################################################################
 
-	def __executeGoTo(self, payload):
+	def _executeGoTo(self, payload):
 
 		params = json.loads(payload)
-		percentage = self.__getParam(params, 'percentage')
+		percentage = self._getParam(params, 'percentage')
 		
 		self._blindController.moveTo(percentage)
 
 	####################################################################################
 	#
-	# __executeStop(self, payload)
+	# _executeStop(self, payload)
 	#
 	####################################################################################
 
-	def __executeStop(self, payload):
+	def _executeStop(self, payload):
 
 		self._blindController.halt()
 
 	####################################################################################
 	#
-	# __executeSetStepSize(self, payload)
+	# _executeSetStepSize(self, payload)
 	#
 	####################################################################################
 
-	def __executeSetStepSize(self, payload):	
+	def _executeSetStepSize(self, payload):	
 	
-		params = self.__parseJson(payload)
-		stepSize = self.__getParam(params, 'step-size')
+		params = self._parseJson(payload)
+		stepSize = self._getParam(params, 'step-size')
 
 		self._blindController.stepSize(stepSize)
 
 	####################################################################################
 	#
-	# __executeSetSpeed(self, payload)
+	# _executeSetSpeed(self, payload)
 	#
 	####################################################################################
 
-	def __executeSetSpeed(self, payload):
+	def _executeSetSpeed(self, payload):
 
 		params = json.loads(payload)
-		speed = self.__getParam(params, 'factor') # 0.1 - 1.0   (arbitrary units)
+		speed = self._getParam(params, 'factor') # 0.1 - 1.0   (arbitrary units)
 		
-		speed = __forceInRange(speed, 0.1, 1.0)
+		speed = _forceInRange(speed, 0.1, 1.0)
 
 		# TODO: Convert a single speed factor to an associated step delay.
 		
 		# self._blindController.motionStepDelay(self, delaySecs)
-		raise NotImplementedError("MQTTSmartBlind.__executeSetSpeed not (yet) implemented.")
+		raise NotImplementedError("MQTTSmartBlind._executeSetSpeed not (yet) implemented.")
 
 	####################################################################################
 	#
-	# __executeSetPolarity(self, payload)
+	# _executeSetPolarity(self, payload)
 	#
 	####################################################################################
 
-	def __executeSetPolarity(self, payload):
+	def _executeSetPolarity(self, payload):
 
 		params = json.loads(payload)
-		self._openIs100 = self.__getParam(params, 'topIs100')
+		self._openIs100 = self._getParam(params, 'topIs100')
 		
 		self._blindController.setPolarity(self._openIs100)
 
 	####################################################################################
 	#
-	# __parseJson(self, params)
+	# _parseJson(self, params)
 	#
 	####################################################################################
 
-	def __parseJson(self, str):
+	def _parseJson(self, str):
 	
 		try:
 			params = json.loads(str)
@@ -699,11 +699,11 @@ class MQTTSmartBlind:
 		
 	####################################################################################
 	#
-	# __getParam(self, params)
+	# _getParam(self, params)
 	#
 	####################################################################################
 
-	def __getParam(self, params, name):
+	def _getParam(self, params, name):
 	
 		if (not name in params):
 			raise Exception(f"Missing parameter '{name}'")
@@ -714,18 +714,18 @@ class MQTTSmartBlind:
 		
 	####################################################################################
 	#
-	# __addTimestamp(self, params)
+	# _addTimestamp(self, params)
 	#
 	####################################################################################
 
-	def __addTimestamp(self, params):
+	def _addTimestamp(self, params):
 	
 		when = datetime.now().strftime(self._dateFormat)
 		params['timestamp'] = when
 	
 	####################################################################################
 	#
-	# __del__(self)
+	# _del_(self)
 	#
 	####################################################################################
 
