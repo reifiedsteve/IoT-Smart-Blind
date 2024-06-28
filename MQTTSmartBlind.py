@@ -612,7 +612,7 @@ class MQTTSmartBlind:
 
 	def _executeClose(self, payload):
 
-		self._blindController.open()
+		self._blindController.close()
 
 	####################################################################################
 	#
